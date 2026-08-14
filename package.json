@@ -1,0 +1,15 @@
+{
+  "name": "stock-exchange-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/api",
+    "packages/*"
+  ],
+  "scripts": {
+    "build:web": "npm run build --workspace @workspace/stock-analyzer",
+    "build:api": "npm run build --workspace @workspace/api-server",
+    "start:api": "npm run start --workspace @workspace/api-server"
+  }
+}
