@@ -1,0 +1,182 @@
+You are a senior full-stack developer.
+
+Build a complete working Stock Price Analyzer web app using:
+
+* Backend: Python (Flask)
+* Data source: yfinance (ONLY)
+* Frontend: HTML + CSS + JavaScript (no React)
+
+---
+
+## ⚠️ IMPORTANT RULES
+
+* Use ONLY yfinance for stock data
+* Do NOT use any external APIs
+* Do NOT fake data
+* Must be fully functional
+
+---
+
+## 🎯 FEATURES
+
+### 1. User Input
+
+* Input box:
+  "Enter stock symbol (e.g., RELIANCE.NS or MSFT)"
+* Helper text:
+
+  * Indian stocks → add .NS
+  * Global stocks → normal symbol
+* Button: Analyze
+
+---
+
+### 2. 🔥 Magnificent 7 Section
+
+Show clickable buttons:
+
+* AAPL, MSFT, NVDA, GOOGL, AMZN, META, TSLA
+
+Behavior:
+
+* Clicking auto-fills input
+* Automatically fetches data
+
+---
+
+### 3. Backend API (Flask)
+
+Create endpoint:
+
+GET /stock?symbol=TSLA
+
+Backend must:
+
+* Fetch data using yfinance
+
+* Get:
+
+  * Company name
+  * Current price
+  * Previous close
+
+* Download historical data (1 year)
+
+* Calculate:
+
+  * Price change
+  * Percentage change
+  * 7-day MA
+  * 30-day MA
+
+Return JSON:
+{
+name,
+price,
+prev_price,
+change,
+percent,
+dates,
+close_prices,
+ma7,
+ma30,
+volume
+}
+
+Handle:
+
+* Invalid symbol
+* Empty dataframe
+* Errors properly
+
+---
+
+### 4. Frontend Display
+
+Show:
+
+#### 📊 Top Section
+
+* Company Name
+* Current Price
+* Change (green/red)
+* Percentage
+
+---
+
+### 5. 📈 Chart (Chart.js or Plotly.js)
+
+Display:
+
+* Closing price
+* 7-day MA
+* 30-day MA
+
+Also include:
+
+* Volume chart below
+
+---
+
+### 6. ⏱ Time Filter
+
+Buttons:
+
+* 1M / 3M / 6M / 1Y
+
+---
+
+### 7. 🧠 Quick Insight
+
+Show:
+
+* "Uptrend" if price > 30-day MA
+* "Downtrend" if price < 30-day MA
+* "Momentum Shift" if MA crossover
+
+---
+
+### 8. ⚠️ Error Handling
+
+Frontend must show:
+
+* "Invalid stock symbol"
+* "No data available"
+
+---
+
+## 🎨 UI
+
+* Clean modern layout
+* Centered input
+* Card-based design
+* Green/red indicators
+* Responsive
+
+---
+
+## 📦 FILE STRUCTURE
+
+* app.py (Flask backend)
+* templates/index.html
+* static/style.css
+* static/script.js
+
+---
+
+## 🚀 RUNNING
+
+App should run with:
+python app.py
+
+---
+
+## 🧠 CODE QUALITY
+
+* Modular functions
+* Clean structure
+* Comments included
+
+---
+
+Generate full working code for all files.

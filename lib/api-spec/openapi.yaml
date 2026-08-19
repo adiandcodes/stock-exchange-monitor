@@ -1,0 +1,509 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: stock
+    description: Stock data operations
+  - name: crypto
+    description: Crypto data operations
+  - name: news
+    description: News operations
+  - name: metals
+    description: Metals data operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /stock:
+    get:
+      operationId: getStock
+      tags: [stock]
+      summary: Get stock data
+      description: Fetches stock info and historical price data for a given symbol
+      parameters:
+        - name: symbol
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Stock ticker symbol (e.g. MSFT, AAPL, RELIANCE.NS)
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["1h", "1mo", "3mo", "6mo", "1y"]
+            default: "1y"
+          description: Time period for historical data (1h = intraday 5-min candles)
+      responses:
+        "200":
+          description: Stock data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockData"
+        "400":
+          description: Invalid symbol or no data available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /resolve:
+    get:
+      operationId: resolveSymbol
+      tags: [stock]
+      summary: Resolve a company name or partial query to a stock symbol
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Company name or partial symbol (e.g. "nvidia", "TCS", "apple")
+      responses:
+        "200":
+          description: Resolved symbol
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResolveResult"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /movers:
+    get:
+      operationId: getMovers
+      tags: [stock]
+      summary: Get top market movers (gainers and losers)
+      responses:
+        "200":
+          description: Top movers data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoversData"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /search:
+    get:
+      operationId: searchSymbol
+      tags: [stock]
+      summary: Real-time symbol search via Yahoo Finance
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query (company name, partial symbol, etc.)
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SearchResult"
+                required:
+                  - results
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /news:
+    get:
+      operationId: getNews
+      tags: [news]
+      summary: Get market or stock-specific news
+      parameters:
+        - name: symbol
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Stock symbol for company-specific news; omit for general market news
+      responses:
+        "200":
+          description: News articles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  articles:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/NewsArticle"
+                required:
+                  - articles
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /crypto:
+    get:
+      operationId: getCrypto
+      tags: [crypto]
+      summary: Get cryptocurrency data
+      parameters:
+        - name: ids
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Comma-separated CoinGecko coin IDs (e.g. bitcoin,ethereum). Omit for top 20 by market cap.
+      responses:
+        "200":
+          description: Crypto data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  coins:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CryptoData"
+                required:
+                  - coins
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /metals:
+    get:
+      operationId: getMetals
+      tags: [metals]
+      summary: Get precious metals prices
+      responses:
+        "200":
+          description: Metals prices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metals:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MetalData"
+                required:
+                  - metals
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message
+    StockData:
+      type: object
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+        price:
+          type: number
+          nullable: true
+        prevPrice:
+          type: number
+          nullable: true
+        change:
+          type: number
+          nullable: true
+        percent:
+          type: number
+          nullable: true
+        currency:
+          type: string
+        dayHigh:
+          type: number
+          nullable: true
+        dayLow:
+          type: number
+          nullable: true
+        weekHigh52:
+          type: number
+          nullable: true
+        weekLow52:
+          type: number
+          nullable: true
+        marketCap:
+          type: number
+          nullable: true
+        volume:
+          type: array
+          items:
+            type: number
+            nullable: true
+        dates:
+          type: array
+          items:
+            type: string
+        closePrices:
+          type: array
+          items:
+            type: number
+            nullable: true
+        ma7:
+          type: array
+          items:
+            type: number
+            nullable: true
+        ma30:
+          type: array
+          items:
+            type: number
+            nullable: true
+        insight:
+          type: string
+          description: "Uptrend, Downtrend, or Momentum Shift"
+          nullable: true
+        trend:
+          type: string
+          description: "Bullish or Bearish"
+          nullable: true
+        volatility:
+          type: string
+          description: "Low, Moderate, or High"
+          nullable: true
+        momentum:
+          type: string
+          description: "Bullish Crossover, Bearish Crossover, or Neutral"
+          nullable: true
+        benchmarkSymbol:
+          type: string
+          nullable: true
+        benchmarkDates:
+          type: array
+          items:
+            type: string
+        benchmarkPrices:
+          type: array
+          items:
+            type: number
+            nullable: true
+        news:
+          type: array
+          items:
+            $ref: "#/components/schemas/NewsArticle"
+      required:
+        - symbol
+        - name
+        - currency
+        - dates
+        - closePrices
+        - ma7
+        - ma30
+        - volume
+        - benchmarkDates
+        - benchmarkPrices
+    ResolveResult:
+      type: object
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+          nullable: true
+        confidence:
+          type: string
+          enum: ["exact", "fuzzy", "unknown"]
+      required:
+        - symbol
+        - confidence
+    Mover:
+      type: object
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+        price:
+          type: number
+        change:
+          type: number
+        percent:
+          type: number
+        currency:
+          type: string
+      required:
+        - symbol
+        - name
+        - price
+        - change
+        - percent
+        - currency
+    MoversData:
+      type: object
+      properties:
+        gainers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Mover"
+        losers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Mover"
+      required:
+        - gainers
+        - losers
+    SearchResult:
+      type: object
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+        exchange:
+          type: string
+        type:
+          type: string
+      required:
+        - symbol
+        - name
+        - exchange
+        - type
+    NewsArticle:
+      type: object
+      properties:
+        title:
+          type: string
+        publisher:
+          type: string
+        link:
+          type: string
+        publishedAt:
+          type: string
+        thumbnail:
+          type: string
+          nullable: true
+      required:
+        - title
+        - publisher
+        - link
+        - publishedAt
+    CryptoData:
+      type: object
+      properties:
+        id:
+          type: string
+        symbol:
+          type: string
+        name:
+          type: string
+        price:
+          type: number
+        change24h:
+          type: number
+          nullable: true
+        marketCap:
+          type: number
+          nullable: true
+        volume24h:
+          type: number
+          nullable: true
+        image:
+          type: string
+          nullable: true
+      required:
+        - id
+        - symbol
+        - name
+        - price
+    MetalData:
+      type: object
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+        price:
+          type: number
+          nullable: true
+        change:
+          type: number
+          nullable: true
+        percent:
+          type: number
+          nullable: true
+        currency:
+          type: string
+        unit:
+          type: string
+      required:
+        - symbol
+        - name
+        - currency
+        - unit
+    # Keep StockError as alias for backward compat
+    StockError:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message

@@ -1,0 +1,183 @@
+I want to make this project completely portable and deployable outside Replit.
+
+DO NOT modify, delete, simplify, or replace the existing working application.
+
+First, perform a COMPLETE AUDIT of the current project.
+
+I need you to prepare a complete deployment handoff/package containing EVERYTHING required to run this application locally without Replit.
+
+Please do the following:
+
+1. AUDIT THE ENTIRE PROJECT
+- Inspect every source file and directory.
+- Identify the frontend.
+- Identify the backend/API.
+- Identify all Python scripts.
+- Identify all Node/TypeScript scripts.
+- Identify every API route/endpoint.
+- Identify how the frontend communicates with the backend.
+- Identify all Yahoo Finance/data-fetching logic.
+- Identify any other external APIs/services.
+- Identify all configuration files.
+- Identify all package/dependency files.
+- Identify all environment variables/secrets that are required.
+
+2. DO NOT OMIT IMPORTANT FILES
+The exported project must contain all source code required to reproduce the currently working application.
+
+Include:
+- frontend source
+- backend source
+- Python files
+- TypeScript/JavaScript files
+- package.json files
+- lockfiles
+- configuration files
+- Vite/Next configuration if applicable
+- TypeScript configuration
+- Tailwind configuration
+- workspace/monorepo configuration
+- Dockerfiles if present
+- Vercel configuration if present
+- README/documentation
+- scripts required for installation/build/start
+- any local data/configuration files required by the application
+
+DO NOT include:
+- node_modules
+- .git
+- Replit cache files
+- temporary build output
+- credentials
+- API keys
+- passwords
+- private tokens
+
+3. ENVIRONMENT VARIABLES
+Create a file named:
+
+.env.example
+
+containing EVERY environment variable required by the application, but with placeholder values only.
+
+Also create documentation explaining:
+- what each variable does
+- where it is used
+- whether it is required or optional
+- where I should obtain the value
+
+NEVER expose any actual secrets.
+
+4. CREATE A COMPLETE README
+
+Create:
+
+DEPLOYMENT.md
+
+It must explain exactly how to run this application on a fresh Windows computer.
+
+Include commands for:
+
+- installing prerequisites
+- installing dependencies
+- starting development mode
+- building production
+- starting production
+- testing the API
+- testing the frontend
+- configuring environment variables
+
+Also explain the complete architecture.
+
+Example:
+
+Frontend
+   ↓
+Backend/API
+   ↓
+Yahoo Finance / external data sources
+
+Document every API endpoint including:
+- HTTP method
+- URL/path
+- parameters
+- expected response
+- purpose
+
+5. MAKE THE PROJECT INDEPENDENT OF REPLIT
+
+The application must NOT depend on Replit-specific services, paths, environment variables, databases, proxies, or runtime behavior unless absolutely necessary.
+
+If something currently depends on Replit:
+- identify it
+- explain it
+- provide a portable alternative if possible
+
+Do NOT make speculative changes to the application.
+
+6. VERIFY THE PACKAGE
+
+After preparing the handoff:
+
+- install dependencies from a clean state
+- run the frontend
+- run the backend
+- verify the main stock functionality
+- verify Yahoo Finance/data fetching
+- verify the major API endpoints
+- verify that the frontend can communicate with the backend
+
+If anything fails, DO NOT hide the failure.
+
+Document:
+- exact error
+- affected file
+- likely cause
+- exact fix
+
+7. CREATE A SINGLE PORTABLE PACKAGE
+
+Create a ZIP package containing the complete portable project.
+
+Name it:
+
+stock-exchange-monitor-portable.zip
+
+The ZIP should contain the project in a clean structure such as:
+
+stock-exchange-monitor/
+├── apps/
+├── packages/
+├── scripts/
+├── .env.example
+├── package.json
+├── pnpm-workspace.yaml (if applicable)
+├── README.md
+├── DEPLOYMENT.md
+└── other required configuration files
+
+8. IMPORTANT
+
+Before finishing, give me a final report containing:
+
+A. Complete project structure
+B. Frontend entry point
+C. Backend entry point
+D. Python data-fetching files
+E. All API routes
+F. Package manager being used
+G. Exact install command
+H. Exact development command
+I. Exact production build command
+J. Exact production start command
+K. Required environment variables
+L. External APIs/services
+M. Replit-specific dependencies, if any
+N. Whether the project can run completely outside Replit
+O. Any known problems or warnings
+
+Do not tell me simply that the project is ready.
+
+I need the actual ZIP package AND the complete technical handoff report.
+
+Most importantly: preserve the CURRENT WORKING APPLICATION exactly as it is. Do not redesign the UI or change functionality during this process.

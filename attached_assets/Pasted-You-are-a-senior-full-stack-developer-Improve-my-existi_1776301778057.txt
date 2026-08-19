@@ -1,0 +1,162 @@
+You are a senior full-stack developer.
+
+Improve my existing Flask-based Stock Price Analyzer web app.
+
+---
+
+## 🎯 GOAL
+
+Upgrade the UI, fill empty space meaningfully, and add a smart chatbot with stock symbol detection.
+
+---
+
+## 🧩 PART 1: UI IMPROVEMENTS (FILL EMPTY SPACE)
+
+Add the following sections:
+
+---
+
+### 📊 Stock Snapshot Panel
+
+Display:
+
+* Day High
+* Day Low
+* 52 Week High
+* 52 Week Low
+* Volume
+* Market Cap
+
+Fetch using yfinance.
+
+---
+
+### 🧭 Trend Summary
+
+Show:
+
+* Trend:
+
+  * Price > 30-day MA → Bullish
+  * Price < 30-day MA → Bearish
+
+* Volatility:
+
+  * Based on price fluctuations
+
+* Momentum:
+
+  * Based on MA crossover
+
+---
+
+### 🔥 Top Movers Section
+
+* Show 3 gainers and 3 losers
+* Can use predefined stocks or yfinance trending
+
+---
+
+### 📈 Benchmark Comparison
+
+* If Indian stock → compare with ^NSEI
+* If global → compare with ^GSPC
+
+---
+
+## 🤖 PART 2: SMART CHATBOT (IMPORTANT)
+
+Create a chatbot UI (bottom-right floating widget).
+
+---
+
+### 💬 Chatbot Features
+
+User can type:
+
+* Company name (e.g., "TCS", "Nvidia", "Microsoft")
+* Stock symbol (e.g., "MSFT")
+
+---
+
+### 🧠 Chatbot Logic (NO external AI required)
+
+Implement:
+
+#### 1. Symbol Resolver
+
+* Maintain mapping dictionary:
+  {
+  "tcs": "TCS.NS",
+  "reliance": "RELIANCE.NS",
+  "nvidia": "NVDA",
+  "microsoft": "MSFT",
+  "apple": "AAPL",
+  ...
+  }
+
+* If user enters company name:
+  → return correct symbol
+
+---
+
+#### 2. Smart Response
+
+Examples:
+
+User: "TCS"
+Bot:
+"Did you mean TCS.NS? Click below to analyze."
+
+User: "Nvidia stock"
+Bot:
+"Symbol for Nvidia is NVDA. Click to analyze."
+
+---
+
+#### 3. Action Button
+
+* Clicking suggestion:
+  → auto triggers stock analysis
+
+---
+
+### ⚠️ IMPORTANT
+
+* Do NOT use OpenAI or external APIs
+* Keep chatbot lightweight (rule-based)
+
+---
+
+## 🎨 UI REQUIREMENTS
+
+* Floating chatbot button (bottom-right)
+* Expandable chat window
+* Clean modern design
+
+---
+
+## 📦 BACKEND CHANGES
+
+* Add endpoint:
+  /resolve?query=NAME
+
+Returns:
+{
+symbol: "NVDA"
+}
+
+---
+
+## 🚀 GOAL
+
+The app should feel:
+
+* Smart
+* Interactive
+* Useful
+* Not empty
+
+---
+
+Modify existing code — do NOT rebuild from scratch.

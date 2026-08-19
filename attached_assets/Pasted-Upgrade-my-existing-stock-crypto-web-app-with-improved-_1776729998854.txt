@@ -1,0 +1,155 @@
+Upgrade my existing stock + crypto web app with improved UI controls, currency conversion, and a new viral feature: Shareable Insight Card.
+
+Do NOT modify or break already working features (search, watchlist, news, metals).
+
+---
+
+1. SECTION TOGGLE (SHOW / HIDE)
+
+---
+
+Add collapsible sections for:
+
+* Key Indicators
+* Stock Snapshot
+
+Requirements:
+
+* Add arrow icon (▼ / ▲)
+* Click toggles visibility
+* Smooth animation (height/opacity)
+* Default: expanded
+
+---
+
+2. REMOVE CHATBOT
+
+---
+
+Completely remove AI chatbot:
+
+* Remove HTML
+* Remove JS logic
+* Remove CSS
+
+---
+
+3. GLOBAL CURRENCY CONVERTER
+
+---
+
+Add currency selector (USD, INR, EUR):
+
+* Convert all displayed prices dynamically
+* Applies to:
+
+  * stocks
+  * crypto
+  * metals
+
+Use API:
+https://api.exchangerate-api.com/v4/latest/USD
+
+* Store selected currency in localStorage
+* Update UI instantly on change
+
+---
+
+4. SHAREABLE INSIGHT CARD (VIRAL FEATURE)
+
+---
+
+Add a button: “Share Insight”
+
+When clicked:
+Generate a visually appealing card with:
+
+DATA:
+
+* Asset name (e.g., BTC / AAPL)
+* Price
+* % change
+* Trend (Bullish / Bearish)
+* Signal Strength (0–100%)
+* 2–3 “Why it’s moving” reasons
+
+VISUAL DESIGN:
+
+* Dark gradient background
+* Trend-based glow:
+
+  * Green → bullish
+  * Red → bearish
+* Smooth card layout with padding and rounded corners
+
+ADD ICON / VISUAL:
+
+* If bullish → show bull icon/image
+* If bearish → show bear icon/image
+
+Optional animation:
+
+* Slight pulse or glow animation on card
+* Subtle hover effect
+
+OUTPUT OPTIONS:
+
+* Allow user to:
+
+  * Download as image (PNG)
+  * Or copy/share link
+
+TEXT FOOTER:
+“Generated via [Your App Name]”
+
+DISCLAIMER:
+“Probable contributing factors, not guaranteed causes.”
+
+---
+
+5. BACKGROUND TREND INTENSITY
+
+---
+
+Enhance background effect:
+
+If price ↑:
+
+* Stronger green radial gradient
+* opacity ~0.25–0.35
+
+If price ↓:
+
+* Stronger red radial gradient
+* slightly darker tone
+
+Must:
+
+* remain blurred
+* not overly harsh
+* smooth transition
+
+---
+
+6. UI POLISH & MICRO-INTERACTIONS
+
+---
+
+* Add global smooth transitions (0.2–0.3s)
+* Smooth hover effects on cards/buttons
+* Subtle scaling animation on click
+* Maintain clean and modern UI
+
+---
+
+## IMPORTANT RULES
+
+* Do NOT fake data
+* Do NOT slow down performance
+* Keep design minimal and premium
+
+---
+
+## GOAL
+
+Create a shareable, visually appealing insight system that encourages users to share insights externally and drives traffic to the app.

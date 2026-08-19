@@ -1,0 +1,139 @@
+Upgrade my existing stock + crypto web app without modifying already working features like:
+
+* Search system
+* Search suggestions UI
+* Watchlist
+* Metals tab
+* News system
+
+Only improve UI, chart behavior, and interactivity.
+
+---
+
+1. CRYPTO CARD VISUAL ENHANCEMENT
+
+---
+
+Enhance existing crypto cards with premium hover effects.
+
+Add:
+
+* Smooth hover animation:
+  transform: translateY(-8px) scale(1.02)
+
+* Glow effect based on coin color:
+  BTC → rgba(247,147,26,0.4)
+  ETH → rgba(98,126,234,0.4)
+  BNB → rgba(243,186,47,0.4)
+  SOL → rgba(153,69,255,0.4)
+
+On hover:
+
+* Card lifts slightly
+* Apply blurred glow background
+* Add soft box-shadow glow
+* Keep colors subtle (not harsh)
+
+---
+
+2. MAIN BACKGROUND TREND EFFECT
+
+---
+
+When a stock or crypto is selected:
+
+If price change > 0:
+→ Apply subtle green radial gradient background
+
+If price change < 0:
+→ Apply subtle red radial gradient background
+
+Details:
+
+* Use blur + gradient
+* opacity low (~0.1–0.2)
+* smooth transition (0.3s)
+* should feel ambient, not distracting
+
+---
+
+3. ADD 1H TIMEFRAME TO CHART
+
+---
+
+Add a new button: “1H”
+
+Backend:
+
+* Fetch data using:
+  interval=5m
+  range=1d
+* Extract last ~12 data points
+
+Frontend:
+
+* Update chart dynamically on click
+* Keep styling consistent with other timeframes
+
+---
+
+4. GLOBAL UI SMOOTHNESS
+
+---
+
+* Add global transition:
+  all 0.2s ease
+
+Apply to:
+
+* cards
+* buttons
+* hover states
+* tab switching
+
+---
+
+5. FOOTER BRANDING
+
+---
+
+Add footer at bottom:
+
+Text:
+“Built with precision by Aditya Sharma”
+
+Style:
+
+* centered
+* minimal
+* subtle glow/accent color
+* small font (clean look)
+
+---
+
+6. OPTIONAL MICRO-INTERACTIONS (IF POSSIBLE)
+
+---
+
+* Slight hover effect on buttons
+* Smooth fade when switching tabs
+* Card click animation (scale down slightly)
+
+---
+
+## IMPORTANT RULES
+
+* Do NOT break existing features
+* Do NOT rewrite working logic
+* Focus only on UI polish and minor enhancements
+* Keep performance optimized
+
+---
+
+## GOAL
+
+Make the app feel like a premium trading dashboard with:
+
+* smooth animations
+* subtle visual feedback
+* clean, modern UI
