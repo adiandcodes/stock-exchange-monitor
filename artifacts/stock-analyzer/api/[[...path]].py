@@ -238,6 +238,50 @@ def news(symbol):
 
     return {"articles": articles}
 
+def movers():
+    symbols = [
+        "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "TSLA",
+        "JPM", "V", "JNJ", "WMT", "UNH", "XOM", "PG", "MA",
+        "HD", "CVX", "MRK", "ABBV", "PFE", "BAC", "KO", "CSCO",
+        "ORCL", "ADBE", "NFLX", "CRM", "AMD", "INTC", "QCOM",
+    ]
+
+    params = urllib.parse.urlencode({
+        "symbols": ",".join(symbols),
+    })
+
+    data = get_json(f"{YAHOO}/v7/finance/quote?{params}")
+    quotes = ((data.get("quoteResponse") or {}).get("result") or [])
+
+    results = []
+
+    for q in quotes:
+        price = q.get("regularMarketPrice")
+        prev = q.get("regularMarketPreviousClose")
+
+        if price is None or prev is None or not prev:
+            continue
+
+        change = round(price - prev, 4)
+        percent = round(change / prev * 100, 4)
+
+        results.append({
+            "symbol": q.get("symbol", ""),
+            "name": q.get("shortName") or q.get("longName") or q.get("symbol", ""),
+            "price": price,
+            "change": change,
+            "percent": percent,
+            "currency": q.get("currency") or "USD",
+        })
+
+    results.sort(key=lambda x: x["percent"], reverse=True)
+
+    return {
+        "gainers": results[:3],
+        "losers": sorted(results, key=lambda x: x["percent"])[:3],
+    }
+
+
 def metals():
     definitions = [
         ("GC=F", "Gold", "troy oz"),
@@ -330,6 +374,9 @@ class handler(BaseHTTPRequestHandler):
 
             elif path.endswith("/metals"):
                 self.send_json(200, metals())
+
+            elif path.endswith("/movers"):
+                self.send_json(200, movers())
 
             else:
                 self.send_json(404, {
