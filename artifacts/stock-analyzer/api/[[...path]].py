@@ -246,39 +246,72 @@ def movers():
         "ORCL", "ADBE", "NFLX", "CRM", "AMD", "INTC", "QCOM",
     ]
 
-    params = urllib.parse.urlencode({
-        "symbols": ",".join(symbols),
-    })
-
-    data = get_json(f"{YAHOO}/v7/finance/quote?{params}")
-    quotes = ((data.get("quoteResponse") or {}).get("result") or [])
-
     results = []
 
-    for q in quotes:
-        price = q.get("regularMarketPrice")
-        prev = q.get("regularMarketPreviousClose")
+    for symbol in symbols:
+        try:
+            data = yahoo_chart(symbol, "2d", "1d")
 
-        if price is None or prev is None or not prev:
+            meta = data.get("meta") or {}
+
+            quote = (
+                (data.get("indicators") or {})
+                .get("quote", [{}])[0]
+            )
+
+            closes = [
+                x for x in (quote.get("close") or [])
+                if x is not None
+            ]
+
+            price = meta.get("regularMarketPrice")
+
+            prev = (
+                meta.get("chartPreviousClose")
+                or meta.get("previousClose")
+            )
+
+            if price is None and closes:
+                price = closes[-1]
+
+            if prev is None and len(closes) >= 2:
+                prev = closes[-2]
+
+            if price is None or prev in (None, 0):
+                continue
+
+            change = price - prev
+            percent = (change / prev) * 100
+
+            results.append({
+                "symbol": symbol,
+                "name": (
+                    meta.get("longName")
+                    or meta.get("shortName")
+                    or symbol
+                ),
+                "price": round(float(price), 4),
+                "change": round(float(change), 4),
+                "percent": round(float(percent), 4),
+                "currency": meta.get("currency") or "USD",
+            })
+
+        except Exception:
+            # Skip an individual symbol if Yahoo temporarily
+            # fails for that symbol.
             continue
 
-        change = round(price - prev, 4)
-        percent = round(change / prev * 100, 4)
-
-        results.append({
-            "symbol": q.get("symbol", ""),
-            "name": q.get("shortName") or q.get("longName") or q.get("symbol", ""),
-            "price": price,
-            "change": change,
-            "percent": percent,
-            "currency": q.get("currency") or "USD",
-        })
-
-    results.sort(key=lambda x: x["percent"], reverse=True)
+    results.sort(
+        key=lambda x: x["percent"],
+        reverse=True
+    )
 
     return {
         "gainers": results[:3],
-        "losers": sorted(results, key=lambda x: x["percent"])[:3],
+        "losers": sorted(
+            results,
+            key=lambda x: x["percent"]
+        )[:3],
     }
 
 
