@@ -1,7 +1,12 @@
-import React, { useRef, useCallback } from "react";
+import React, { useRef, useCallback, useMemo } from "react";
 import html2canvas from "html2canvas";
 import { X, Download } from "lucide-react";
-import { StockData } from "@workspace/api-client-react";
+import {
+  StockData,
+  NewsArticle,
+  useGetNews,
+  getGetNewsQueryKey,
+} from "@workspace/api-client-react";
 
 interface ShareInsightCardProps {
   data: StockData;
@@ -24,38 +29,178 @@ function getSignalStrength(data: StockData): number {
   return Math.min(Math.max(score, 5), 95);
 }
 
-function getReasons(data: StockData): string[] {
-  const pct = data.percent ?? 0;
-  const bullish = pct >= 0;
-  const reasons: string[] = [];
-
-  if (Math.abs(pct) > 1) {
-    reasons.push(
-      `${bullish ? "+" : ""}${pct.toFixed(2)}% move today signals ${bullish ? "strong buying" : "heavy selling"} pressure`
-    );
-  } else {
-    reasons.push(`Modest ${Math.abs(pct).toFixed(2)}% day-change — market is consolidating`);
-  }
+// ── A) Technical signal — one observation, grounded only in existing data ──
+function getTechnicalSignal(data: StockData): string {
+  const ma7 = data.ma7 ?? [];
+  const ma30 = data.ma30 ?? [];
+  const lastMa7 = ma7.length ? ma7[ma7.length - 1] : null;
+  const lastMa30 = ma30.length ? ma30[ma30.length - 1] : null;
+  const price = data.price ?? null;
 
   if (data.momentum === "Bullish Crossover") {
-    reasons.push("5D MA crossed above 20D MA — classic bullish momentum signal");
-  } else if (data.momentum === "Bearish Crossover") {
-    reasons.push("5D MA crossed below 20D MA — bearish momentum signal detected");
-  } else if (data.trend === "Bullish") {
-    reasons.push("Short-term MA trending above long-term MA — uptrend intact");
-  } else {
-    reasons.push("Short-term MA trending below long-term MA — downward pressure");
+    return "Short-term momentum is strengthening as the 5D MA crosses above the 20D MA.";
   }
+  if (data.momentum === "Bearish Crossover") {
+    return "Short-term momentum is weakening as the 5D MA moves below the 20D MA.";
+  }
+  if (price != null && lastMa30 != null) {
+    if (price > lastMa30) {
+      return "Price is trading above the 20D moving average, indicating an established upward trend.";
+    }
+    if (price < lastMa30) {
+      return "Price is below the 20D moving average, indicating continued downward pressure.";
+    }
+  }
+  if (lastMa7 != null && lastMa30 != null) {
+    if (lastMa7 > lastMa30) {
+      return "Short-term average remains above the long-term average, supporting the current trend.";
+    }
+    if (lastMa7 < lastMa30) {
+      return "Short-term average remains below the long-term average, reflecting persistent weakness.";
+    }
+  }
+  return "Momentum is neutral with no significant moving-average crossover.";
+}
 
+// ── C) Secondary signal — one more observation, distinct from the technical one ──
+function getSecondarySignal(
+  data: StockData,
+  convert: (v: number | null | undefined) => number | null,
+  currencySymbol: string
+): string {
+  if (data.volatility === "High") {
+    return "Volatility is elevated, pointing to sharper-than-usual price swings.";
+  }
   if (data.volatility === "Low") {
-    reasons.push("Low volatility environment — controlled, steady price movement");
-  } else if (data.volatility === "High") {
-    reasons.push("High volatility detected — significant price swings expected");
-  } else {
-    reasons.push("Moderate volatility — balanced buying and selling pressure");
+    return "Volatility remains low, reflecting steady, controlled price action.";
   }
 
-  return reasons.slice(0, 3);
+  const price = data.price;
+  const high = data.weekHigh52;
+  const low = data.weekLow52;
+
+  if (price != null && high != null && high > 0) {
+    const offHigh = ((high - price) / high) * 100;
+    if (offHigh <= 3) {
+      return `Trading within ${offHigh.toFixed(1)}% of its 52-week high.`;
+    }
+  }
+  if (price != null && low != null && low > 0) {
+    const offLow = ((price - low) / low) * 100;
+    if (offLow <= 5) {
+      return `Trading just ${offLow.toFixed(1)}% above its 52-week low.`;
+    }
+  }
+
+  const dayHigh = convert(data.dayHigh);
+  const dayLow = convert(data.dayLow);
+  if (dayHigh != null && dayLow != null) {
+    return `Today's range has held between ${currencySymbol}${dayLow.toFixed(2)} and ${currencySymbol}${dayHigh.toFixed(2)}.`;
+  }
+
+  return data.volatility
+    ? `Volatility is ${data.volatility.toLowerCase()}, reflecting balanced buying and selling pressure.`
+    : "Price action remains within a balanced, two-sided range.";
+}
+
+// ── B) Market catalyst — pick the most relevant recent article, never invent one ──
+const CATALYST_KEYWORDS = [
+  "earnings", "guidance", "revenue", "profit", "outlook", "forecast",
+  "product", "launch", "partnership", "deal", "contract", "acquisition",
+  "merger", "analyst", "upgrade", "downgrade", "price target", "rating",
+  "regulatory", "lawsuit", "investigation", "ai ", "chip", "demand",
+  "supply", "buyback", "dividend", "ceo", "layoff", "recall", "fda",
+  "patent", "ipo", "tariff", "rate cut", "rate hike", "inflation", "fed",
+  "stock split", "spinoff", "data center",
+];
+
+function parsePublishedAt(value: unknown): Date | null {
+  if (value == null || value === "") return null;
+  let num: number | null = null;
+  if (typeof value === "number") num = value;
+  else if (typeof value === "string" && /^\d+$/.test(value)) num = Number(value);
+  if (num != null) {
+    const ms = num < 1e12 ? num * 1000 : num; // seconds vs ms epoch
+    const d = new Date(ms);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof value === "string") {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
+function formatRelativeTime(date: Date | null): string | null {
+  if (!date) return null;
+  const diffMs = Date.now() - date.getTime();
+  const mins = Math.floor(Math.max(diffMs, 0) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString();
+}
+
+function scoreArticle(
+  article: NewsArticle,
+  index: number,
+  symbol: string,
+  companyName: string,
+  now: number
+): number {
+  let score = 0;
+  const title = (article.title || "").toLowerCase();
+  const sym = symbol.toLowerCase();
+  const nameWords = companyName
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 3 && !["inc", "corp", "corporation", "ltd", "the"].includes(w));
+
+  if (sym && title.includes(sym)) score += 15;
+  if (nameWords.some((w) => title.includes(w))) score += 10;
+  if (CATALYST_KEYWORDS.some((kw) => title.includes(kw))) score += 8;
+
+  const date = parsePublishedAt(article.publishedAt);
+  if (date) {
+    const hoursAgo = (now - date.getTime()) / 3600000;
+    if (hoursAgo <= 24) score += 12;
+    else if (hoursAgo <= 72) score += 6;
+    else if (hoursAgo <= 168) score += 2;
+  }
+
+  // Stable tiebreak: earlier results from the feed rank slightly higher.
+  score += Math.max(0, 5 - index) * 0.1;
+  return score;
+}
+
+function selectCatalyst(
+  articles: NewsArticle[] | undefined,
+  symbol: string,
+  companyName: string
+): NewsArticle | null {
+  if (!articles || articles.length === 0) return null;
+  const now = Date.now();
+  const usable = articles.filter((a) => a && a.title && a.link);
+  if (usable.length === 0) return null;
+
+  let best = usable[0];
+  let bestScore = -Infinity;
+  usable.forEach((article, i) => {
+    const s = scoreArticle(article, i, symbol, companyName, now);
+    if (s > bestScore) {
+      bestScore = s;
+      best = article;
+    }
+  });
+  return best;
+}
+
+function truncate(text: string, max: number): string {
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1).trimEnd()}…`;
 }
 
 export function ShareInsightCard({
@@ -68,9 +213,35 @@ export function ShareInsightCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const bullish = (data.trend ?? "") === "Bullish" || (data.percent ?? 0) >= 0;
   const signalStrength = getSignalStrength(data);
-  const reasons = getReasons(data);
   const price = convert(data.price);
   const change = convert(data.change);
+
+  // Reuses the existing /api/news query — if the News panel on this page
+  // already fetched this symbol, the cache is served with no extra request.
+  const { data: newsData } = useGetNews(
+    { symbol },
+    {
+      query: {
+        queryKey: getGetNewsQueryKey({ symbol }),
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+      },
+    }
+  );
+
+  const technicalSignal = useMemo(() => getTechnicalSignal(data), [data]);
+  const secondarySignal = useMemo(
+    () => getSecondarySignal(data, convert, currencySymbol),
+    [data, convert, currencySymbol]
+  );
+  const catalyst = useMemo(
+    () => selectCatalyst(newsData?.articles, symbol, data.name ?? ""),
+    [newsData, symbol, data.name]
+  );
+  const catalystTime = useMemo(
+    () => formatRelativeTime(parsePublishedAt(catalyst?.publishedAt)),
+    [catalyst]
+  );
 
   const handleDownload = useCallback(async () => {
     if (!cardRef.current) return;
@@ -290,26 +461,93 @@ export function ShareInsightCard({
                 color: "#666",
                 textTransform: "uppercase",
                 letterSpacing: "0.12em",
-                marginBottom: "10px",
+                marginBottom: "12px",
               }}
             >
               Why it's moving
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
-              {reasons.map((r, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
-                  <span
-                    style={{ color: accentColor, flexShrink: 0, marginTop: "1px", fontSize: "12px" }}
-                  >
-                    {bullish ? "▲" : "▼"}
-                  </span>
-                  <span
-                    style={{ fontSize: "12px", color: "#bbb", lineHeight: "1.55" }}
-                  >
-                    {r}
-                  </span>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "13px" }}>
+              {/* A) Technical signal */}
+              <div>
+                <div
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    color: accentColor,
+                    letterSpacing: "0.08em",
+                    marginBottom: "5px",
+                  }}
+                >
+                  📊 TECHNICAL SIGNAL
                 </div>
-              ))}
+                <div style={{ fontSize: "12px", color: "#bbb", lineHeight: "1.55" }}>
+                  {technicalSignal}
+                </div>
+              </div>
+
+              {/* B) Market catalyst */}
+              <div>
+                <div
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    color: accentColor,
+                    letterSpacing: "0.08em",
+                    marginBottom: "5px",
+                  }}
+                >
+                  📰 MARKET CATALYST
+                </div>
+                {catalyst ? (
+                  <div>
+                    <div style={{ fontSize: "10.5px", color: "#888", marginBottom: "3px" }}>
+                      A potential catalyst investors are watching:
+                    </div>
+                    <a
+                      href={catalyst.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontSize: "12px",
+                        color: "#ddd",
+                        lineHeight: "1.5",
+                        textDecoration: "none",
+                        display: "block",
+                      }}
+                    >
+                      &ldquo;{truncate(catalyst.title, 100)}&rdquo;
+                    </a>
+                    <div style={{ fontSize: "10.5px", color: "#777", marginTop: "4px" }}>
+                      {[catalyst.publisher || "Yahoo Finance", catalystTime]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: "12px", color: "#888", fontStyle: "italic" }}>
+                    No major recent catalyst identified in available news.
+                  </div>
+                )}
+              </div>
+
+              {/* C) Secondary signal */}
+              <div>
+                <div
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    color: accentColor,
+                    letterSpacing: "0.08em",
+                    marginBottom: "5px",
+                  }}
+                >
+                  📈 SECONDARY SIGNAL
+                </div>
+                <div style={{ fontSize: "12px", color: "#bbb", lineHeight: "1.55" }}>
+                  {secondarySignal}
+                </div>
+              </div>
             </div>
           </div>
 
