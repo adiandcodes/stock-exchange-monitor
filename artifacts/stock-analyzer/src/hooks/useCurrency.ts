@@ -48,10 +48,17 @@ export function useCurrency() {
     localStorage.setItem(CURRENCY_KEY, c);
   }, []);
 
+  // `value` is denominated in `fromCurrency` (a stock/crypto/metal's native
+  // quote currency, e.g. INR for TCS.NS) and is converted into the selected
+  // display currency via USD-based cross rates. Defaults to "USD" so callers
+  // whose values are already USD-denominated (crypto, metals) are unaffected.
   const convert = useCallback(
-    (usdValue: number | null | undefined): number | null => {
-      if (usdValue == null) return null;
-      return usdValue * (rates[currency] ?? 1);
+    (value: number | null | undefined, fromCurrency: string = "USD"): number | null => {
+      if (value == null) return null;
+      if (fromCurrency === currency) return value; // no conversion needed
+      const fromRate = rates[fromCurrency] ?? 1; // units of fromCurrency per 1 USD
+      const toRate = rates[currency] ?? 1; // units of selected currency per 1 USD
+      return (value / fromRate) * toRate;
     },
     [rates, currency]
   );

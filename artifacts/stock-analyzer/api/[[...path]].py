@@ -5,6 +5,9 @@ import urllib.request
 import urllib.parse
 import math
 from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor
+
+MOVERS_CONCURRENCY = 8
 
 UA = "Mozilla/5.0"
 YAHOO = "https://query1.finance.yahoo.com"
@@ -245,6 +248,61 @@ def news(symbol):
 
     return {"articles": articles}
 
+def _fetch_mover(symbol):
+    """Fetch and score a single mover symbol. Returns None on any failure
+    or insufficient data so one bad symbol can't take down the batch."""
+    try:
+        data = yahoo_chart(symbol, "5d", "1d")
+
+        meta = data.get("meta") or {}
+
+        quote = (
+            (data.get("indicators") or {})
+            .get("quote", [{}])[0]
+        )
+
+        closes = [
+            x for x in (quote.get("close") or [])
+            if x is not None
+        ]
+
+        price = meta.get("regularMarketPrice")
+
+        if price is None and closes:
+            price = closes[-1]
+
+        # chartPreviousClose/previousClose reflect the close before
+        # the requested range, not necessarily yesterday's close, so
+        # prefer the actual previous daily close from the series.
+        prev = (
+            closes[-2] if len(closes) >= 2
+            else meta.get("previousClose") or meta.get("chartPreviousClose")
+        )
+
+        if price is None or prev in (None, 0):
+            return None
+
+        change = price - prev
+        percent = (change / prev) * 100
+
+        return {
+            "symbol": symbol,
+            "name": (
+                meta.get("longName")
+                or meta.get("shortName")
+                or symbol
+            ),
+            "price": round(float(price), 4),
+            "change": round(float(change), 4),
+            "percent": round(float(percent), 4),
+            "currency": meta.get("currency") or "USD",
+        }
+
+    except Exception:
+        # Skip an individual symbol if Yahoo temporarily fails for it.
+        return None
+
+
 def movers():
     symbols = [
         "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "TSLA",
@@ -253,60 +311,13 @@ def movers():
         "ORCL", "ADBE", "NFLX", "CRM", "AMD", "INTC", "QCOM",
     ]
 
-    results = []
+    # Symbols are independent network requests, so fetch them concurrently
+    # instead of one-at-a-time — bounded by MOVERS_CONCURRENCY to stay well
+    # under Yahoo's rate limits rather than firing ~30 requests at once.
+    with ThreadPoolExecutor(max_workers=MOVERS_CONCURRENCY) as executor:
+        fetched = list(executor.map(_fetch_mover, symbols))
 
-    for symbol in symbols:
-        try:
-            data = yahoo_chart(symbol, "5d", "1d")
-
-            meta = data.get("meta") or {}
-
-            quote = (
-                (data.get("indicators") or {})
-                .get("quote", [{}])[0]
-            )
-
-            closes = [
-                x for x in (quote.get("close") or [])
-                if x is not None
-            ]
-
-            price = meta.get("regularMarketPrice")
-
-            if price is None and closes:
-                price = closes[-1]
-
-            # chartPreviousClose/previousClose reflect the close before
-            # the requested range, not necessarily yesterday's close, so
-            # prefer the actual previous daily close from the series.
-            prev = (
-                closes[-2] if len(closes) >= 2
-                else meta.get("previousClose") or meta.get("chartPreviousClose")
-            )
-
-            if price is None or prev in (None, 0):
-                continue
-
-            change = price - prev
-            percent = (change / prev) * 100
-
-            results.append({
-                "symbol": symbol,
-                "name": (
-                    meta.get("longName")
-                    or meta.get("shortName")
-                    or symbol
-                ),
-                "price": round(float(price), 4),
-                "change": round(float(change), 4),
-                "percent": round(float(percent), 4),
-                "currency": meta.get("currency") or "USD",
-            })
-
-        except Exception:
-            # Skip an individual symbol if Yahoo temporarily
-            # fails for that symbol.
-            continue
+    results = [r for r in fetched if r is not None]
 
     results.sort(
         key=lambda x: x["percent"],

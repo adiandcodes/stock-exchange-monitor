@@ -12,7 +12,7 @@ interface ShareInsightCardProps {
   data: StockData;
   symbol: string;
   currencySymbol: string;
-  convert: (v: number | null | undefined) => number | null;
+  convert: (v: number | null | undefined, fromCurrency?: string) => number | null;
   onClose: () => void;
 }
 
@@ -38,17 +38,17 @@ function getTechnicalSignal(data: StockData): string {
   const price = data.price ?? null;
 
   if (data.momentum === "Bullish Crossover") {
-    return "Short-term momentum is strengthening as the 5D MA crosses above the 20D MA.";
+    return "Short-term momentum is strengthening as the 7D MA crosses above the 30D MA.";
   }
   if (data.momentum === "Bearish Crossover") {
-    return "Short-term momentum is weakening as the 5D MA moves below the 20D MA.";
+    return "Short-term momentum is weakening as the 7D MA moves below the 30D MA.";
   }
   if (price != null && lastMa30 != null) {
     if (price > lastMa30) {
-      return "Price is trading above the 20D moving average, indicating an established upward trend.";
+      return "Price is trading above the 30D moving average, indicating an established upward trend.";
     }
     if (price < lastMa30) {
-      return "Price is below the 20D moving average, indicating continued downward pressure.";
+      return "Price is below the 30D moving average, indicating continued downward pressure.";
     }
   }
   if (lastMa7 != null && lastMa30 != null) {
@@ -65,7 +65,7 @@ function getTechnicalSignal(data: StockData): string {
 // ── C) Secondary signal — one more observation, distinct from the technical one ──
 function getSecondarySignal(
   data: StockData,
-  convert: (v: number | null | undefined) => number | null,
+  convert: (v: number | null | undefined, fromCurrency?: string) => number | null,
   currencySymbol: string
 ): string {
   if (data.volatility === "High") {
@@ -92,8 +92,8 @@ function getSecondarySignal(
     }
   }
 
-  const dayHigh = convert(data.dayHigh);
-  const dayLow = convert(data.dayLow);
+  const dayHigh = convert(data.dayHigh, data.currency);
+  const dayLow = convert(data.dayLow, data.currency);
   if (dayHigh != null && dayLow != null) {
     return `Today's range has held between ${currencySymbol}${dayLow.toFixed(2)} and ${currencySymbol}${dayHigh.toFixed(2)}.`;
   }
@@ -213,8 +213,8 @@ export function ShareInsightCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const bullish = (data.trend ?? "") === "Bullish" || (data.percent ?? 0) >= 0;
   const signalStrength = getSignalStrength(data);
-  const price = convert(data.price);
-  const change = convert(data.change);
+  const price = convert(data.price, data.currency);
+  const change = convert(data.change, data.currency);
 
   // Reuses the existing /api/news query — if the News panel on this page
   // already fetched this symbol, the cache is served with no extra request.

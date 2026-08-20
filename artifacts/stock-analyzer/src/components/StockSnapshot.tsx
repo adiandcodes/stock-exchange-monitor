@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface StockSnapshotProps {
   data: StockData;
   loading?: boolean;
-  convert: (v: number | null | undefined) => number | null;
+  convert: (v: number | null | undefined, fromCurrency?: string) => number | null;
   currencySymbol: string;
 }
 
@@ -70,7 +70,7 @@ export function StockSnapshot({
                 <span className="text-muted-foreground">{label}</span>
                 <span className="font-mono font-medium">
                   {fmtConverted(
-                    convert(data[key] as number | null),
+                    convert(data[key] as number | null, data.currency),
                     currencySymbol
                   )}
                 </span>
@@ -85,7 +85,7 @@ export function StockSnapshot({
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Market Cap</span>
               <span className="font-mono font-medium">
-                {fmtMarketCap(convert(data.marketCap), currencySymbol)}
+                {fmtMarketCap(convert(data.marketCap, data.currency), currencySymbol)}
               </span>
             </div>
           </div>

@@ -17,6 +17,8 @@ import { Card, CardContent } from "@/components/ui/card";
 interface StockChartProps {
   data: StockData;
   period: "1h" | "1mo" | "3mo" | "6mo" | "1y";
+  convert: (v: number | null | undefined, fromCurrency?: string) => number | null;
+  currencySymbol: string;
 }
 
 const getSliceCount = (period: string) => {
@@ -48,7 +50,7 @@ function alignByDate(
   return stockDates.map((d) => benchMap.get(d) ?? null);
 }
 
-export function StockChart({ data, period }: StockChartProps) {
+export function StockChart({ data, period, convert, currencySymbol }: StockChartProps) {
   const isIntraday = period === "1h";
 
   const chartData = useMemo(() => {
@@ -61,13 +63,13 @@ export function StockChart({ data, period }: StockChartProps) {
       const idx = startIdx + i;
       return {
         date: dateStr, // already formatted as "HH:MM" for 1h, or full date otherwise
-        close: data.closePrices[idx] ?? null,
-        ma7:   isIntraday ? null : (data.ma7[idx] ?? null),
-        ma30:  isIntraday ? null : (data.ma30[idx] ?? null),
+        close: convert(data.closePrices[idx], data.currency) ?? null,
+        ma7:   isIntraday ? null : convert(data.ma7[idx], data.currency) ?? null,
+        ma30:  isIntraday ? null : convert(data.ma30[idx], data.currency) ?? null,
         volume: data.volume[idx] ?? null,
       };
     });
-  }, [data, period, isIntraday]);
+  }, [data, period, isIntraday, convert]);
 
   const benchmarkData = useMemo(() => {
     if (isIntraday) return [];
@@ -92,7 +94,6 @@ export function StockChart({ data, period }: StockChartProps) {
   if (chartData.length === 0) return null;
 
   const benchLabel = data.benchmarkSymbol === "^NSEI" ? "NIFTY 50" : "S&P 500";
-  const currencySymbol = data.currency === "INR" ? "₹" : "$";
 
   // For intraday, format the XAxis date labels nicely (they are already "HH:MM")
   const xTickFormatter = isIntraday

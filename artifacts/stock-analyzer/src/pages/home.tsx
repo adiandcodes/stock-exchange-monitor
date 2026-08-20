@@ -140,9 +140,9 @@ export default function Home() {
 
   const isStockWatched = watchlist.includes(`stock:${activeSymbol}`);
   const isPositive     = (stockData?.change ?? 0) >= 0;
-  const convertedPrice  = convert(stockData?.price);
-  const convertedChange = convert(stockData?.change);
-  const convertedPrev   = convert(stockData?.prevPrice);
+  const convertedPrice  = convert(stockData?.price, stockData?.currency);
+  const convertedChange = convert(stockData?.change, stockData?.currency);
+  const convertedPrev   = convert(stockData?.prevPrice, stockData?.currency);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans pb-24 relative">
@@ -413,11 +413,11 @@ export default function Home() {
                       ) : (
                         <div className="space-y-2.5 text-sm">
                           {[
-                            ["Prev Close", convert(stockData.prevPrice)],
-                            ["Day High",   convert(stockData.dayHigh)],
-                            ["Day Low",    convert(stockData.dayLow)],
-                            ["5D MA",      convert(stockData.ma7?.[stockData.ma7.length - 1])],
-                            ["20D MA",     convert(stockData.ma30?.[stockData.ma30.length - 1])],
+                            ["Prev Close", convert(stockData.prevPrice, stockData.currency)],
+                            ["Day High",   convert(stockData.dayHigh, stockData.currency)],
+                            ["Day Low",    convert(stockData.dayLow, stockData.currency)],
+                            ["7D MA",      convert(stockData.ma7?.[stockData.ma7.length - 1], stockData.currency)],
+                            ["30D MA",     convert(stockData.ma30?.[stockData.ma30.length - 1], stockData.currency)],
                           ].map(([label, val]) => (
                             <div key={String(label)} className="flex justify-between">
                               <span className="text-muted-foreground">{label}</span>
@@ -500,7 +500,12 @@ export default function Home() {
                     <Skeleton className="h-[120px] w-full rounded-xl" />
                   </div>
                 ) : (
-                  <StockChart data={chartData} period={period} />
+                  <StockChart
+                    data={chartData}
+                    period={period}
+                    convert={convert}
+                    currencySymbol={currencySymbol}
+                  />
                 )}
 
                 {!isLoading && stockData && <NewsPanel symbol={activeSymbol} />}
