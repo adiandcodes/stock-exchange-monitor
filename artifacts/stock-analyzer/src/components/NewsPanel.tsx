@@ -7,20 +7,45 @@ interface NewsPanelProps {
   symbol?: string;
 }
 
-function timeAgo(iso: string): string {
-  try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return iso;
-    const diff = Date.now() - d.getTime();
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return "just now";
-    if (m < 60) return `${m}m ago`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
-  } catch {
-    return iso;
+// publishedAt is typed as `string` but Yahoo's feed sometimes serializes it
+// as a raw Unix epoch (seconds, not milliseconds) instead of ISO-8601. Feeding
+// that straight into `new Date()` is misread as an epoch-milliseconds value
+// landing near 1970, producing bogus multi-thousand-day "ago" text. Detect
+// and normalize both shapes before parsing.
+function parsePublishedAt(value: unknown): Date | null {
+  if (value == null || value === "") return null;
+
+  let num: number | null = null;
+  if (typeof value === "number") num = value;
+  else if (typeof value === "string" && /^\d+$/.test(value)) num = Number(value);
+
+  if (num != null) {
+    const ms = num < 1e12 ? num * 1000 : num; // seconds vs milliseconds epoch
+    const d = new Date(ms);
+    return isNaN(d.getTime()) ? null : d;
   }
+
+  if (typeof value === "string") {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  return null;
+}
+
+function timeAgo(value: unknown): string {
+  const d = parsePublishedAt(value);
+  if (!d) return typeof value === "string" ? value : "";
+
+  const diff = Math.max(Date.now() - d.getTime(), 0);
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const days = Math.floor(h / 24);
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString();
 }
 
 export function NewsPanel({ symbol }: NewsPanelProps) {
