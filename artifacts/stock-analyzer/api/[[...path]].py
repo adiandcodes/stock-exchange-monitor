@@ -63,11 +63,18 @@ def stock(symbol, period="1y"):
         ]
 
     price = meta.get("regularMarketPrice") or (prices[-1] if prices else None)
-    prev = (
-        meta.get("chartPreviousClose")
-        or meta.get("previousClose")
-        or (prices[-2] if len(prices) > 1 else None)
-    )
+
+    # chartPreviousClose/previousClose reflect the close *before the
+    # requested range* (e.g. ~1y ago for range=1y), not yesterday's
+    # close, so they can't be used for daily change on multi-day ranges.
+    # The daily close series itself gives the real previous trading day.
+    if period == "1h":
+        prev = meta.get("previousClose") or meta.get("chartPreviousClose")
+    else:
+        prev = (
+            prices[-2] if len(prices) > 1
+            else meta.get("previousClose") or meta.get("chartPreviousClose")
+        )
 
     change = round(price - prev, 4) if price is not None and prev is not None else None
     percent = round(change / prev * 100, 4) if change is not None and prev else None
@@ -250,7 +257,7 @@ def movers():
 
     for symbol in symbols:
         try:
-            data = yahoo_chart(symbol, "2d", "1d")
+            data = yahoo_chart(symbol, "5d", "1d")
 
             meta = data.get("meta") or {}
 
@@ -266,16 +273,16 @@ def movers():
 
             price = meta.get("regularMarketPrice")
 
-            prev = (
-                meta.get("chartPreviousClose")
-                or meta.get("previousClose")
-            )
-
             if price is None and closes:
                 price = closes[-1]
 
-            if prev is None and len(closes) >= 2:
-                prev = closes[-2]
+            # chartPreviousClose/previousClose reflect the close before
+            # the requested range, not necessarily yesterday's close, so
+            # prefer the actual previous daily close from the series.
+            prev = (
+                closes[-2] if len(closes) >= 2
+                else meta.get("previousClose") or meta.get("chartPreviousClose")
+            )
 
             if price is None or prev in (None, 0):
                 continue
